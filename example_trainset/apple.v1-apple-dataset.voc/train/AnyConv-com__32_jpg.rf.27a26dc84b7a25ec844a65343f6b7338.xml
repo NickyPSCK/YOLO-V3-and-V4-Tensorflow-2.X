@@ -1,0 +1,27 @@
+<annotation>
+	<folder></folder>
+	<filename>AnyConv-com__32_jpg.rf.27a26dc84b7a25ec844a65343f6b7338.jpg</filename>
+	<path>AnyConv-com__32_jpg.rf.27a26dc84b7a25ec844a65343f6b7338.jpg</path>
+	<source>
+		<database>roboflow.ai</database>
+	</source>
+	<size>
+		<width>416</width>
+		<height>416</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>apple</name>
+		<pose>Unspecified</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<occluded>0</occluded>
+		<bndbox>
+			<xmin>37</xmin>
+			<xmax>177</xmax>
+			<ymin>160</ymin>
+			<ymax>361</ymax>
+		</bndbox>
+	</object>
+</annotation>

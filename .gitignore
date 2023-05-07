@@ -1,0 +1,10 @@
+*.pyc
+pretrained_weight/coco.names
+pretrained_weight/yolov3-tiny.weights
+pretrained_weight/yolov3.weights
+pretrained_weight/yolov4-tiny.weights
+pretrained_weight/yolov4.weights
+example_trainset/apple.v1-apple-dataset.voc/processed_anotation/class.txt
+example_trainset/apple.v1-apple-dataset.voc/processed_anotation/train.txt
+example_trainset/apple.v1-apple-dataset.voc/processed_anotation/valid.txt
+
