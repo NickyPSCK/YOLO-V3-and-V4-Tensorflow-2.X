@@ -98,18 +98,19 @@ result, bboxes = yolo_custom_detector.detect_image(image_rgb=image_rgb,
 plt.imshow(result)
 ```
 
-Requirements and Installation
-Download model weight files below into ./pretrained_weight directory
+## Requirements and Installation
+
+- Install all dependencies
+```
+pip install -r ./requirements.txt
+```
+
+- Download model weight files below into ./pretrained_weight directory
 
 1. yolov3-tiny.weights >> from https://pjreddie.com/media/files/yolov3-tiny.weights
 2. yolov3.weights >> from https://pjreddie.com/media/files/yolov3.weights
 3. yolov4-tiny.weights >> from https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights
 4. yolov4.weights >> from https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights
-
-
-
-
-
 
 
 ## Interesting Pre-Read/Watch
