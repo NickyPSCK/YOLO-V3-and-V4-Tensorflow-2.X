@@ -7,7 +7,9 @@ class BatchNormalization(tf.keras.layers.BatchNormalization):
     # `layer.trainable = False` is to freeze the layer, so the layer will use
     # stored moving `var` and `mean` in the "inference mode", and both `gama`
     # and `beta` will not be updated !
-    def call(self, x, training=False):
+    def call(self,
+             x,
+             training=False):
         if not training:
             training = tf.constant(False)
         training = tf.logical_and(training, self.trainable)
@@ -18,7 +20,13 @@ class YOLOModel(YOLOBase):
     def __init__(self):
         pass
 
-    def _layer_convolutional(self, input_layer, filters_shape, downsample=False, activate=True, bn=True, activate_type='leaky'):
+    def _layer_convolutional(self,
+                             input_layer,
+                             filters_shape,
+                             downsample=False,
+                             activate=True,
+                             bn=True,
+                             activate_type='leaky'):
         if downsample:
             input_layer = tf.keras.layers.ZeroPadding2D(((1, 0), (1, 0)))(input_layer)
             padding = 'valid'
@@ -45,106 +53,199 @@ class YOLOModel(YOLOBase):
 
         return conv
 
-    def _layer_residual_block(self, input_layer, input_channel, filter_num1, filter_num2, activate_type='leaky'):
+    def _layer_residual_block(self,
+                              input_layer,
+                              input_channel,
+                              filter_num1,
+                              filter_num2,
+                              activate_type='leaky'):
         short_cut = input_layer
-        conv = self._layer_convolutional(input_layer=input_layer, filters_shape=(1, 1, input_channel, filter_num1), activate_type=activate_type)
-        conv = self._layer_convolutional(input_layer=conv, filters_shape=(3, 3, filter_num1, filter_num2), activate_type=activate_type)
+        conv = self._layer_convolutional(input_layer=input_layer,
+                                         filters_shape=(1, 1, input_channel, filter_num1),
+                                         activate_type=activate_type)
+        conv = self._layer_convolutional(input_layer=conv,
+                                         filters_shape=(3, 3, filter_num1, filter_num2),
+                                         activate_type=activate_type)
         residual_output = short_cut + conv
         return residual_output
 
     def _layer_upsample(self, input_layer):
-        return tf.image.resize(input_layer, (input_layer.shape[1] * 2, input_layer.shape[2] * 2), method='nearest')
+        return tf.image.resize(input_layer, (input_layer.shape[1] * 2, input_layer.shape[2] * 2),
+                               method='nearest')
 
-    def _layer_route_group(self, input_layer, groups, group_id):
+    def _layer_route_group(self,
+                           input_layer,
+                           groups,
+                           group_id):
         convs = tf.split(input_layer, num_or_size_splits=groups, axis=-1)
         return convs[group_id]
 
-    def _layer_darknet53(self, input_data):
-        input_data = self._layer_convolutional(input_data, (3, 3, 3, 32))
-        input_data = self._layer_convolutional(input_data, (3, 3, 32, 64), downsample=True)
+    def _layer_darknet53(self,
+                         input_data):
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 3, 32))
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 32, 64),
+                                               downsample=True)
 
         for i in range(1):
             input_data = self._layer_residual_block(input_data, 64, 32, 64)
 
-        input_data = self._layer_convolutional(input_data, (3, 3, 64, 128), downsample=True)
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 64, 128),
+                                               downsample=True)
 
         for i in range(2):
             input_data = self._layer_residual_block(input_data, 128, 64, 128)
 
-        input_data = self._layer_convolutional(input_data, (3, 3, 128, 256), downsample=True)
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 128, 256),
+                                               downsample=True)
 
         for i in range(8):
             input_data = self._layer_residual_block(input_data, 256, 128, 256)
 
         route_1 = input_data
-        input_data = self._layer_convolutional(input_data, (3, 3, 256, 512), downsample=True)
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 256, 512),
+                                               downsample=True)
 
         for i in range(8):
             input_data = self._layer_residual_block(input_data, 512, 256, 512)
 
         route_2 = input_data
-        input_data = self._layer_convolutional(input_data, (3, 3, 512, 1024), downsample=True)
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 512, 1024),
+                                               downsample=True)
 
         for i in range(4):
             input_data = self._layer_residual_block(input_data, 1024, 512, 1024)
 
         return route_1, route_2, input_data
 
-    def _layer_cspdarknet53(self, input_data):
-        input_data = self._layer_convolutional(input_data, (3, 3, 3, 32), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (3, 3, 32, 64), downsample=True, activate_type="mish")
+    def _layer_cspdarknet53(self,
+                            input_data):
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 3, 32),
+                                               activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 32, 64),
+                                               downsample=True,
+                                               activate_type="mish")
 
         route = input_data
-        route = self._layer_convolutional(route, (1, 1, 64, 64), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 64, 64), activate_type="mish")
+        route = self._layer_convolutional(route,
+                                          (1, 1, 64, 64),
+                                          activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 64, 64),
+                                               activate_type="mish")
         for i in range(1):
-            input_data = self._layer_residual_block(input_data, 64, 32, 64, activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 64, 64), activate_type="mish")
+            input_data = self._layer_residual_block(input_data, 64, 32, 64,
+                                                    activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 64, 64),
+                                               activate_type="mish")
 
-        input_data = tf.concat([input_data, route], axis=-1)
-        input_data = self._layer_convolutional(input_data, (1, 1, 128, 64), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (3, 3, 64, 128), downsample=True, activate_type="mish")
+        input_data = tf.concat([input_data, route],
+                               axis=-1)
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 128, 64),
+                                               activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 64, 128),
+                                               downsample=True,
+                                               activate_type="mish")
         route = input_data
-        route = self._layer_convolutional(route, (1, 1, 128, 64), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 128, 64), activate_type="mish")
+        route = self._layer_convolutional(route,
+                                          (1, 1, 128, 64),
+                                          activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 128, 64),
+                                               activate_type="mish")
         for i in range(2):
-            input_data = self._layer_residual_block(input_data, 64, 64, 64, activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 64, 64), activate_type="mish")
-        input_data = tf.concat([input_data, route], axis=-1)
+            input_data = self._layer_residual_block(input_data, 64, 64, 64,
+                                                    activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 64, 64),
+                                               activate_type="mish")
+        input_data = tf.concat([input_data, route],
+                               axis=-1)
 
-        input_data = self._layer_convolutional(input_data, (1, 1, 128, 128), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (3, 3, 128, 256), downsample=True, activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 128, 128),
+                                               activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 128, 256),
+                                               downsample=True,
+                                               activate_type="mish")
         route = input_data
-        route = self._layer_convolutional(route, (1, 1, 256, 128), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 256, 128), activate_type="mish")
+        route = self._layer_convolutional(route,
+                                          (1, 1, 256, 128),
+                                          activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 256, 128),
+                                               activate_type="mish")
         for i in range(8):
-            input_data = self._layer_residual_block(input_data, 128, 128, 128, activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 128, 128), activate_type="mish")
-        input_data = tf.concat([input_data, route], axis=-1)
+            input_data = self._layer_residual_block(input_data, 128, 128, 128,
+                                                    activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 128, 128),
+                                               activate_type="mish")
+        input_data = tf.concat([input_data, route],
+                               axis=-1)
 
-        input_data = self._layer_convolutional(input_data, (1, 1, 256, 256), activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 256, 256),
+                                               activate_type="mish")
         route_1 = input_data
-        input_data = self._layer_convolutional(input_data, (3, 3, 256, 512), downsample=True, activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 256, 512),
+                                               downsample=True,
+                                               activate_type="mish")
         route = input_data
-        route = self._layer_convolutional(route, (1, 1, 512, 256), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 512, 256), activate_type="mish")
+        route = self._layer_convolutional(route,
+                                          (1, 1, 512, 256),
+                                          activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 512, 256),
+                                               activate_type="mish")
         for i in range(8):
-            input_data = self._layer_residual_block(input_data, 256, 256, 256, activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 256, 256), activate_type="mish")
-        input_data = tf.concat([input_data, route], axis=-1)
+            input_data = self._layer_residual_block(input_data, 256, 256, 256,
+                                                    activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 256, 256),
+                                               activate_type="mish")
+        input_data = tf.concat([input_data, route],
+                               axis=-1)
 
-        input_data = self._layer_convolutional(input_data, (1, 1, 512, 512), activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 512, 512),
+                                               activate_type="mish")
         route_2 = input_data
-        input_data = self._layer_convolutional(input_data, (3, 3, 512, 1024), downsample=True, activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (3, 3, 512, 1024),
+                                               downsample=True,
+                                               activate_type="mish")
         route = input_data
-        route = self._layer_convolutional(route, (1, 1, 1024, 512), activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 1024, 512), activate_type="mish")
+        route = self._layer_convolutional(route,
+                                          (1, 1, 1024, 512),
+                                          activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 1024, 512),
+                                               activate_type="mish")
         for i in range(4):
-            input_data = self._layer_residual_block(input_data, 512, 512, 512, activate_type="mish")
-        input_data = self._layer_convolutional(input_data, (1, 1, 512, 512), activate_type="mish")
-        input_data = tf.concat([input_data, route], axis=-1)
+            input_data = self._layer_residual_block(input_data, 512, 512, 512,
+                                                    activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 512, 512),
+                                               activate_type="mish")
+        input_data = tf.concat([input_data, route],
+                               axis=-1)
 
-        input_data = self._layer_convolutional(input_data, (1, 1, 1024, 1024), activate_type="mish")
+        input_data = self._layer_convolutional(input_data,
+                                               (1, 1, 1024, 1024),
+                                               activate_type="mish")
         input_data = self._layer_convolutional(input_data, (1, 1, 1024, 512))
         input_data = self._layer_convolutional(input_data, (3, 3, 512, 1024))
         input_data = self._layer_convolutional(input_data, (1, 1, 1024, 512))
@@ -160,7 +261,8 @@ class YOLOModel(YOLOBase):
 
         return route_1, route_2, input_data
 
-    def _layer_darknet19_tiny(self, input_data):
+    def _layer_darknet19_tiny(self,
+                              input_data):
         input_data = self._layer_convolutional(input_data, (3, 3, 3, 16))
         input_data = tf.keras.layers.MaxPool2D(2, 2, 'same')(input_data)
         input_data = self._layer_convolutional(input_data, (3, 3, 16, 32))
@@ -179,8 +281,10 @@ class YOLOModel(YOLOBase):
         return route_1, input_data
 
     def _layer_cspdarknet53_tiny(self, input_data):
-        input_data = self._layer_convolutional(input_data, (3, 3, 3, 32), downsample=True)
-        input_data = self._layer_convolutional(input_data, (3, 3, 32, 64), downsample=True)
+        input_data = self._layer_convolutional(input_data, (3, 3, 3, 32),
+                                               downsample=True)
+        input_data = self._layer_convolutional(input_data, (3, 3, 32, 64),
+                                               downsample=True)
         input_data = self._layer_convolutional(input_data, (3, 3, 64, 64))
 
         route = input_data
@@ -220,7 +324,9 @@ class YOLOModel(YOLOBase):
 
         return route_1, input_data
 
-    def _layer_yolo_v3(self, input_layer, no_of_classes):
+    def _layer_yolo_v3(self,
+                       input_layer,
+                       no_of_classes):
         # After the input layer enters the Darknet-53 network, we get three branches
         route_1, route_2, conv = self._layer_darknet53(input_layer)
         # See the orange module (DBL) in the figure above, a total of 5 Subconvolution operation
@@ -232,7 +338,10 @@ class YOLOModel(YOLOBase):
         conv_lobj_branch = self._layer_convolutional(conv, (3, 3, 512, 1024))
 
         # conv_lbbox is used to predict large-sized objects , Shape = [None, 13, 13, 255]
-        conv_lbbox = self._layer_convolutional(conv_lobj_branch, (1, 1, 1024, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_lbbox = self._layer_convolutional(conv_lobj_branch,
+                                               (1, 1, 1024, 3 * (no_of_classes + 5)),
+                                               activate=False,
+                                               bn=False)
 
         conv = self._layer_convolutional(conv, (1, 1, 512, 256))
         # upsample here uses the nearest neighbor interpolation method, which has the advantage that the
@@ -248,7 +357,10 @@ class YOLOModel(YOLOBase):
         conv_mobj_branch = self._layer_convolutional(conv, (3, 3, 256, 512))
 
         # conv_mbbox is used to predict medium-sized objects, shape = [None, 26, 26, 255]
-        conv_mbbox = self._layer_convolutional(conv_mobj_branch, (1, 1, 512, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_mbbox = self._layer_convolutional(conv_mobj_branch,
+                                               (1, 1, 512, 3 * (no_of_classes + 5)),
+                                               activate=False,
+                                               bn=False)
 
         conv = self._layer_convolutional(conv, (1, 1, 256, 128))
         conv = self._layer_upsample(conv)
@@ -262,11 +374,16 @@ class YOLOModel(YOLOBase):
         conv_sobj_branch = self._layer_convolutional(conv, (3, 3, 128, 256))
 
         # conv_sbbox is used to predict small size objects, shape = [None, 52, 52, 255]
-        conv_sbbox = self._layer_convolutional(conv_sobj_branch, (1, 1, 256, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_sbbox = self._layer_convolutional(conv_sobj_branch,
+                                               (1, 1, 256, 3 * (no_of_classes + 5)),
+                                               activate=False,
+                                               bn=False)
 
         return [conv_sbbox, conv_mbbox, conv_lbbox]
 
-    def _layer_yolo_v4(self, input_layer, no_of_classes):
+    def _layer_yolo_v4(self,
+                       input_layer,
+                       no_of_classes):
         route_1, route_2, conv = self._layer_cspdarknet53(input_layer)
 
         route = conv
@@ -295,9 +412,12 @@ class YOLOModel(YOLOBase):
 
         route_1 = conv
         conv = self._layer_convolutional(conv, (3, 3, 128, 256))
-        conv_sbbox = self._layer_convolutional(conv, (1, 1, 256, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_sbbox = self._layer_convolutional(conv, (1, 1, 256, 3 * (no_of_classes + 5)),
+                                               activate=False,
+                                               bn=False)
 
-        conv = self._layer_convolutional(route_1, (3, 3, 128, 256), downsample=True)
+        conv = self._layer_convolutional(route_1, (3, 3, 128, 256),
+                                         downsample=True)
         conv = tf.concat([conv, route_2], axis=-1)
 
         conv = self._layer_convolutional(conv, (1, 1, 512, 256))
@@ -308,7 +428,9 @@ class YOLOModel(YOLOBase):
 
         route_2 = conv
         conv = self._layer_convolutional(conv, (3, 3, 256, 512))
-        conv_mbbox = self._layer_convolutional(conv, (1, 1, 512, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_mbbox = self._layer_convolutional(conv,
+                                               (1, 1, 512, 3 * (no_of_classes + 5)),
+                                               activate=False, bn=False)
 
         conv = self._layer_convolutional(route_2, (3, 3, 256, 512), downsample=True)
         conv = tf.concat([conv, route], axis=-1)
@@ -320,11 +442,15 @@ class YOLOModel(YOLOBase):
         conv = self._layer_convolutional(conv, (1, 1, 1024, 512))
 
         conv = self._layer_convolutional(conv, (3, 3, 512, 1024))
-        conv_lbbox = self._layer_convolutional(conv, (1, 1, 1024, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_lbbox = self._layer_convolutional(conv,
+                                               (1, 1, 1024, 3 * (no_of_classes + 5)),
+                                               activate=False, bn=False)
 
         return [conv_sbbox, conv_mbbox, conv_lbbox]
 
-    def _layer_yolo_v3_tiny(self, input_layer, no_of_classes):
+    def _layer_yolo_v3_tiny(self,
+                            input_layer,
+                            no_of_classes):
         # After the input layer enters the Darknet-53 network, we get three branches
         route_1, conv = self._layer_darknet19_tiny(input_layer)
 
@@ -332,7 +458,9 @@ class YOLOModel(YOLOBase):
         conv_lobj_branch = self._layer_convolutional(conv, (3, 3, 256, 512))
 
         # conv_lbbox is used to predict large-sized objects , Shape = [None, 26, 26, 255]
-        conv_lbbox = self._layer_convolutional(conv_lobj_branch, (1, 1, 512, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_lbbox = self._layer_convolutional(conv_lobj_branch,
+                                               (1, 1, 512, 3 * (no_of_classes + 5)),
+                                               activate=False, bn=False)
 
         conv = self._layer_convolutional(conv, (1, 1, 256, 128))
         # upsample here uses the nearest neighbor interpolation method, which has the advantage that the
@@ -342,28 +470,43 @@ class YOLOModel(YOLOBase):
         conv = tf.concat([conv, route_1], axis=-1)
         conv_mobj_branch = self._layer_convolutional(conv, (3, 3, 128, 256))
         # conv_mbbox is used to predict medium size objects, shape = [None, 13, 13, 255]
-        conv_mbbox = self._layer_convolutional(conv_mobj_branch, (1, 1, 256, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_mbbox = self._layer_convolutional(conv_mobj_branch,
+                                               (1, 1, 256, 3 * (no_of_classes + 5)),
+                                               activate=False, bn=False)
 
         return [conv_mbbox, conv_lbbox]
 
-    def _layer_yolo_v4_tiny(self, input_layer, no_of_classes):
+    def _layer_yolo_v4_tiny(self,
+                            input_layer,
+                            no_of_classes):
         route_1, conv = self._layer_cspdarknet53_tiny(input_layer)
 
         conv = self._layer_convolutional(conv, (1, 1, 512, 256))
 
         conv_lobj_branch = self._layer_convolutional(conv, (3, 3, 256, 512))
-        conv_lbbox = self._layer_convolutional(conv_lobj_branch, (1, 1, 512, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_lbbox = self._layer_convolutional(conv_lobj_branch,
+                                               (1, 1, 512, 3 * (no_of_classes + 5)),
+                                               activate=False,
+                                               bn=False)
 
         conv = self._layer_convolutional(conv, (1, 1, 256, 128))
         conv = self._layer_upsample(conv)
         conv = tf.concat([conv, route_1], axis=-1)
 
         conv_mobj_branch = self._layer_convolutional(conv, (3, 3, 128, 256))
-        conv_mbbox = self._layer_convolutional(conv_mobj_branch, (1, 1, 256, 3 * (no_of_classes + 5)), activate=False, bn=False)
+        conv_mbbox = self._layer_convolutional(conv_mobj_branch,
+                                               (1, 1, 256, 3 * (no_of_classes + 5)),
+                                               activate=False,
+                                               bn=False)
 
         return [conv_mbbox, conv_lbbox]
 
-    def decode(self, conv_output, no_of_classes, strides, anchors, i=0):
+    def decode(self,
+               conv_output,
+               no_of_classes,
+               strides,
+               anchors,
+               i=0):
         '''
         where i = 0, 1 or 2 to correspond to the three grid scales
         '''

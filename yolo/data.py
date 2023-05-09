@@ -85,7 +85,8 @@ class YOLODatasetGenerator(YOLOBase):
 
         return final_annotations, classes
 
-    def delete_bad_annotation(self, bad_annotation):
+    def delete_bad_annotation(self,
+                              bad_annotation):
         print(f'Deleting {bad_annotation} annotation line')
         # bad_image_path = bad_annotation[0]
         bad_image_name = bad_annotation[0].split('/')[-1]  # can be used to delete bad image
@@ -100,7 +101,9 @@ class YOLODatasetGenerator(YOLOBase):
                     f.write(i)
             f.truncate()
 
-    def random_horizontal_flip(self, image, bboxes):
+    def random_horizontal_flip(self,
+                               image,
+                               bboxes):
         if random.random() < 0.5:
             _, w, _ = image.shape
             image = image[:, ::-1, :]
@@ -108,10 +111,13 @@ class YOLODatasetGenerator(YOLOBase):
 
         return image, bboxes
 
-    def random_crop(self, image, bboxes):
+    def random_crop(self,
+                    image,
+                    bboxes):
         if random.random() < 0.5:
             h, w, _ = image.shape
-            max_bbox = np.concatenate([np.min(bboxes[:, 0:2], axis=0), np.max(bboxes[:, 2:4], axis=0)], axis=-1)
+            max_bbox = np.concatenate([np.min(bboxes[:, 0:2], axis=0),
+                                       np.max(bboxes[:, 2:4], axis=0)], axis=-1)
 
             max_l_trans = max_bbox[0]
             max_u_trans = max_bbox[1]
@@ -133,7 +139,8 @@ class YOLODatasetGenerator(YOLOBase):
     def random_translate(self, image, bboxes):
         if random.random() < 0.5:
             h, w, _ = image.shape
-            max_bbox = np.concatenate([np.min(bboxes[:, 0:2], axis=0), np.max(bboxes[:, 2:4], axis=0)], axis=-1)
+            max_bbox = np.concatenate([np.min(bboxes[:, 0:2], axis=0),
+                                       np.max(bboxes[:, 2:4], axis=0)], axis=-1)
 
             max_l_trans = max_bbox[0]
             max_u_trans = max_bbox[1]
@@ -151,7 +158,9 @@ class YOLODatasetGenerator(YOLOBase):
 
         return image, bboxes
 
-    def parse_annotation(self, annotation, mAP: bool = False):
+    def parse_annotation(self,
+                         annotation,
+                         mAP: bool = False):
         if self.load_images_to_ram:
             image_path = annotation[0]
             image = annotation[2]
@@ -171,10 +180,13 @@ class YOLODatasetGenerator(YOLOBase):
         if mAP:
             return image, bboxes
 
-        image, bboxes = self.image_preprocess(np.copy(image), [self.input_sizes, self.input_sizes], np.copy(bboxes))
+        image, bboxes = self.image_preprocess(np.copy(image),
+                                              [self.input_sizes, self.input_sizes],
+                                              np.copy(bboxes))
         return image, bboxes
 
-    def preprocess_true_boxes(self, bboxes):
+    def preprocess_true_boxes(self,
+                              bboxes):
         output_levels = len(self.strides)
 
         label = [np.zeros((self.train_output_sizes[i], self.train_output_sizes[i], self.anchor_per_scale,
@@ -252,15 +264,32 @@ class YOLODatasetGenerator(YOLOBase):
             self.train_input_size = random.choice([self.input_sizes])
             self.train_output_sizes = self.train_input_size // self.strides
 
-            batch_image = np.zeros((self.batch_size, self.train_input_size, self.train_input_size, 3), dtype=np.float32)
+            batch_image = np.zeros((self.batch_size,
+                                    self.train_input_size,
+                                    self.train_input_size,
+                                    3), dtype=np.float32)
 
             if self.train_yolo_tiny:
-                batch_label_mbbox = np.zeros((self.batch_size, self.train_output_sizes[0], self.train_output_sizes[0], self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
-                batch_label_lbbox = np.zeros((self.batch_size, self.train_output_sizes[1], self.train_output_sizes[1], self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
+                batch_label_mbbox = np.zeros((self.batch_size, self.train_output_sizes[0],
+                                              self.train_output_sizes[0],
+                                              self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
+                batch_label_lbbox = np.zeros((self.batch_size,
+                                              self.train_output_sizes[1],
+                                              self.train_output_sizes[1],
+                                              self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
             else:
-                batch_label_sbbox = np.zeros((self.batch_size, self.train_output_sizes[0], self.train_output_sizes[0], self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
-                batch_label_mbbox = np.zeros((self.batch_size, self.train_output_sizes[1], self.train_output_sizes[1], self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
-                batch_label_lbbox = np.zeros((self.batch_size, self.train_output_sizes[2], self.train_output_sizes[2], self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
+                batch_label_sbbox = np.zeros((self.batch_size,
+                                              self.train_output_sizes[0],
+                                              self.train_output_sizes[0],
+                                              self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
+                batch_label_mbbox = np.zeros((self.batch_size,
+                                              self.train_output_sizes[1],
+                                              self.train_output_sizes[1],
+                                              self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
+                batch_label_lbbox = np.zeros((self.batch_size,
+                                              self.train_output_sizes[2],
+                                              self.train_output_sizes[2],
+                                              self.anchor_per_scale, 5 + self.no_of_classes), dtype=np.float32)
 
                 batch_sbboxes = np.zeros((self.batch_size, self.max_bbox_per_scale, 4), dtype=np.float32)
 

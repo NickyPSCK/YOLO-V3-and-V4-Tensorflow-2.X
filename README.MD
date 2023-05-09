@@ -46,13 +46,13 @@ train_data = YOLODatasetGenerator(anotation_path='example_trainset/apple.v1-appl
                                   max_bbox_per_scale=100)
 
 valid_data = YOLODatasetGenerator(anotation_path='example_trainset/apple.v1-apple-dataset.voc/processed_anotation/valid.txt',
-                                 version=version,
-                                 input_sizes=416,
-                                 batch_size=3,
-                                 data_aug=False,
-                                 load_images_to_ram=True,
-                                 anchor_per_scale=3,
-                                 max_bbox_per_scale=100)
+                                  version=version,
+                                  input_sizes=416,
+                                  batch_size=3,
+                                  data_aug=False,
+                                  load_images_to_ram=True,
+                                  anchor_per_scale=3,
+                                  max_bbox_per_scale=100)
 ```
 
 Create Model

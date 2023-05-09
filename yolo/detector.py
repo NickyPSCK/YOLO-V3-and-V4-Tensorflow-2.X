@@ -12,7 +12,9 @@ from yolo.estimator import YOLOEstimator
 
 class YOLOObjectDetector(YOLOBase):
 
-    def __init__(self, model: YOLOEstimator, classes: list = None):
+    def __init__(self,
+                 model: YOLOEstimator,
+                 classes: list = None):
 
         self.model = model
         self.classes = classes
@@ -31,7 +33,14 @@ class YOLOObjectDetector(YOLOBase):
         _ = self.detect_image(np.zeros((100, 100, 3)))
 
     @staticmethod
-    def draw_bbox(image, bboxes, classes, show_label=False, show_confidence=False, Text_colors=(255, 255, 0), rectangle_colors=None, tracking=False):
+    def draw_bbox(image,
+                  bboxes,
+                  classes,
+                  show_label=False,
+                  show_confidence=False,
+                  Text_colors=(255, 255, 0),
+                  rectangle_colors=None,
+                  tracking=False):
         num_classes = len(classes)
         image_h, image_w, _ = image.shape
         hsv_tuples = [(1.0 * x / num_classes, 1., 1.) for x in range(num_classes)]
@@ -81,16 +90,27 @@ class YOLOObjectDetector(YOLOBase):
                 (text_width, text_height), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_COMPLEX_SMALL,
                                                                       fontScale, thickness=bbox_thick)
                 # put filled text rectangle
-                cv2.rectangle(image, (x1, y1), (x1 + text_width, y1 - text_height - baseline), bbox_color, thickness=cv2.FILLED)
+                cv2.rectangle(image,
+                              (x1, y1),
+                              (x1 + text_width, y1 - text_height - baseline),
+                              bbox_color,
+                              thickness=cv2.FILLED)
 
                 # put text above rectangle
-                cv2.putText(image, label, (x1, y1 - 4), cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                            fontScale, Text_colors, bbox_thick, lineType=cv2.LINE_AA)
+                cv2.putText(image,
+                            label,
+                            (x1, y1 - 4),
+                            cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                            fontScale,
+                            Text_colors,
+                            bbox_thick,
+                            lineType=cv2.LINE_AA)
 
         return image
 
     @staticmethod
-    def bboxes_iou(boxes1, boxes2):
+    def bboxes_iou(boxes1,
+                   boxes2):
         boxes1 = np.array(boxes1)
         boxes2 = np.array(boxes2)
 
@@ -108,7 +128,10 @@ class YOLOObjectDetector(YOLOBase):
         return ious
 
     @staticmethod
-    def nms(bboxes, iou_threshold, sigma=0.3, method='nms'):
+    def nms(bboxes,
+            iou_threshold,
+            sigma=0.3,
+            method='nms'):
         """
         :param bboxes: (xmin, ymin, xmax, ymax, score, class)
 
@@ -149,7 +172,10 @@ class YOLOObjectDetector(YOLOBase):
         return best_bboxes
 
     @staticmethod
-    def postprocess_boxes(pred_bbox, original_image, input_size, score_threshold):
+    def postprocess_boxes(pred_bbox,
+                          original_image,
+                          input_size,
+                          score_threshold):
         valid_scale = [0, np.inf]
         pred_bbox = np.array(pred_bbox)
 
@@ -197,18 +223,30 @@ class YOLOObjectDetector(YOLOBase):
                      show_confidence: bool = False,
                      rectangle_colors: tuple = None):
 
-        image_data = self.image_preprocess(np.copy(image_rgb), [self.input_size, self.input_size])
+        image_data = self.image_preprocess(np.copy(image_rgb),
+                                           [self.input_size, self.input_size])
 
         image_data = image_data[np.newaxis, ...].astype(np.float32)
 
-        pred_bbox = self.model.model_for_prediction(image_data, training=False)
+        pred_bbox = self.model.model_for_prediction(image_data,
+                                                    training=False)
 
         pred_bbox = [tf.reshape(x, (-1, tf.shape(x)[-1])) for x in pred_bbox]
         pred_bbox = tf.concat(pred_bbox, axis=0)
 
-        bboxes = self.postprocess_boxes(pred_bbox, image_rgb, self.input_size, score_threshold)
-        bboxes = self.nms(bboxes, iou_threshold, method='nms')
+        bboxes = self.postprocess_boxes(pred_bbox,
+                                        image_rgb,
+                                        self.input_size,
+                                        score_threshold)
+        bboxes = self.nms(bboxes,
+                          iou_threshold,
+                          method='nms')
 
-        result_image = self.draw_bbox(image_rgb, bboxes, classes=self.classes, show_label=show_label, show_confidence=show_confidence, rectangle_colors=rectangle_colors)
+        result_image = self.draw_bbox(image_rgb,
+                                      bboxes,
+                                      classes=self.classes,
+                                      show_label=show_label,
+                                      show_confidence=show_confidence,
+                                      rectangle_colors=rectangle_colors)
 
         return result_image, bboxes

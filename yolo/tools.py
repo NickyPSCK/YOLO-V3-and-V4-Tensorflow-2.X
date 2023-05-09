@@ -1,4 +1,3 @@
-import os
 import glob
 import xml.etree.ElementTree as ET
 
@@ -40,7 +39,9 @@ class XMLtoInputConvertor:
 
         return annotations
 
-    def convert(self, XML_dir: str, annotation_path: str = None):
+    def convert(self,
+                XML_dir: str,
+                annotation_path: str = None):
         annotations = self.parse_xml(XML_dir)
         if annotation_path is not None:
             with open(annotation_path, 'w') as f:
@@ -48,7 +49,8 @@ class XMLtoInputConvertor:
 
         return annotations
 
-    def export_class_names(self, class_names_path: str = None):
+    def export_class_names(self,
+                           class_names_path: str = None):
         class_names = map(lambda x: x + '\n', self.class_names)
 
         if class_names_path is not None:

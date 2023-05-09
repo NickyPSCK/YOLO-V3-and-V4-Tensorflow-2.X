@@ -90,7 +90,9 @@ class YOLOEstimator(YOLOBase):
             pass
 
     @classmethod
-    def load(cls, model_dir: str, disable_gpu: bool = False):
+    def load(cls,
+             model_dir: str,
+             disable_gpu: bool = False):
         save_weights_path = os.path.join(model_dir, 'model_weights')
         save_config_path = os.path.join(model_dir, 'model_config.ycf')
         with open(save_config_path, 'rb') as f:
@@ -127,7 +129,8 @@ class YOLOEstimator(YOLOBase):
                     pass
         return destination_model
 
-    def load_weights(self, weight_path):
+    def load_weights(self,
+                     weight_path):
         try:
             self.model.load_weights(weight_path)
             self.create_model_for_prediction()
@@ -135,7 +138,8 @@ class YOLOEstimator(YOLOBase):
         except ValueError:
             print("Shapes are incompatible, transfering Darknet weights")
 
-    def save(self, model_dir):
+    def save(self,
+             model_dir):
         os.makedirs(model_dir, exist_ok=True, mode=777)
         save_weights_path = os.path.join(model_dir, 'model_weights')
         save_config_path = os.path.join(model_dir, 'model_config.ycf')
@@ -143,7 +147,10 @@ class YOLOEstimator(YOLOBase):
         self.model.save_weights(save_weights_path)
 
         with open(save_config_path, 'wb') as f:
-            config_dict = {'version': self.version, 'input_size': self.input_size, 'channels': self.channels, 'no_of_classes': self.no_of_classes}
+            config_dict = {'version': self.version,
+                           'input_size': self.input_size,
+                           'channels': self.channels,
+                           'no_of_classes': self.no_of_classes}
             pickle.dump(config_dict, f)
 
     def load_darknet_pretrained_model(self):
@@ -235,12 +242,21 @@ class YOLOEstimator(YOLOBase):
 
         return model
 
-    def _compute_loss(self, pred, conv, label, bboxes, i=0):
+    def _compute_loss(self,
+                      pred,
+                      conv,
+                      label,
+                      bboxes,
+                      i=0):
         conv_shape = tf.shape(conv)
         batch_size = conv_shape[0]
         output_size = conv_shape[1]
         input_size = self.strides[i] * output_size
-        conv = tf.reshape(conv, (batch_size, output_size, output_size, 3, 5 + self.no_of_classes))
+        conv = tf.reshape(conv, (batch_size,
+                                 output_size,
+                                 output_size,
+                                 3,
+                                 5 + self.no_of_classes))
 
         conv_raw_conf = conv[:, :, :, :, 4:5]
         conv_raw_prob = conv[:, :, :, :, 5:]
@@ -258,22 +274,28 @@ class YOLOEstimator(YOLOBase):
         bbox_loss_scale = 2.0 - 1.0 * label_xywh[:, :, :, :, 2:3] * label_xywh[:, :, :, :, 3:4] / (input_size ** 2)
         giou_loss = respond_bbox * bbox_loss_scale * (1 - giou)
 
-        iou = self.bbox_iou(pred_xywh[:, :, :, :, np.newaxis, :], bboxes[:, np.newaxis, np.newaxis, np.newaxis, :, :])
+        iou = self.bbox_iou(pred_xywh[:, :, :, :, np.newaxis, :],
+                            bboxes[:, np.newaxis, np.newaxis, np.newaxis, :, :])
         # Find the value of IoU with the real box The largest prediction box
         max_iou = tf.expand_dims(tf.reduce_max(iou, axis=-1), axis=-1)
 
-        # If the largest iou is less than the threshold, it is considered that the prediction box contains no objects, then the background box
+        # If the largest iou is less than the threshold,
+        # it is considered that the prediction box contains no objects, then the background box
         respond_bgd = (1.0 - respond_bbox) * tf.cast(max_iou < self.yolo_iou_threshold, tf.float32)
 
         conf_focal = tf.pow(respond_bbox - pred_conf, 2)
 
         # Calculate the loss of confidence
-        # we hope that if the grid contains objects, then the network output prediction box has a confidence of 1 and 0 when there is no object.
+        # we hope that if the grid contains objects,
+        # then the network output prediction box has a confidence of 1 and 0 when there is no object.
 
-        conf_loss = conf_focal * (respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=respond_bbox, logits=conv_raw_conf)
-                                  + respond_bgd * tf.nn.sigmoid_cross_entropy_with_logits(labels=respond_bbox, logits=conv_raw_conf))
+        conf_loss = conf_focal * (respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=respond_bbox,
+                                                                                         logits=conv_raw_conf)
+                                  + respond_bgd * tf.nn.sigmoid_cross_entropy_with_logits(labels=respond_bbox,
+                                                                                          logits=conv_raw_conf))
 
-        prob_loss = respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=label_prob, logits=conv_raw_prob)
+        prob_loss = respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=label_prob,
+                                                                           logits=conv_raw_prob)
 
         giou_loss = tf.reduce_mean(tf.reduce_sum(giou_loss, axis=[1, 2, 3, 4]))
         conf_loss = tf.reduce_mean(tf.reduce_sum(conf_loss, axis=[1, 2, 3, 4]))
@@ -281,7 +303,9 @@ class YOLOEstimator(YOLOBase):
 
         return giou_loss, conf_loss, prob_loss
 
-    def compute_loss(self, target, pred_result):
+    def compute_loss(self,
+                     target,
+                     pred_result):
         if 'tiny' in self.version:
             grid = 2
         else:
@@ -300,13 +324,18 @@ class YOLOEstimator(YOLOBase):
 
         return giou_loss, conf_loss, prob_loss
 
-    def validate_loss(self, image_data, target, training):
+    def validate_loss(self,
+                      image_data,
+                      target,
+                      training):
         pred_result = self.model(image_data, training=training)
         giou_loss, conf_loss, prob_loss = self.compute_loss(target, pred_result)
         total_loss = giou_loss + conf_loss + prob_loss
         return giou_loss, conf_loss, prob_loss, total_loss
 
-    def adjust_weights(self, image_data, target):
+    def adjust_weights(self,
+                       image_data,
+                       target):
         with tf.GradientTape() as tape:
             giou_loss, conf_loss, prob_loss, total_loss = self.validate_loss(image_data, target, training=True)
             gradients = tape.gradient(total_loss, self.model.trainable_variables)
@@ -336,7 +365,9 @@ class YOLOEstimator(YOLOBase):
 
         return self.global_steps.numpy(), self.optimizer.lr.numpy(), giou_loss.numpy(), conf_loss.numpy(), prob_loss.numpy(), total_loss.numpy()
 
-    def validate_step(self, val_data: YOLODatasetGenerator, epoch: int):
+    def validate_step(self,
+                      val_data: YOLODatasetGenerator,
+                      epoch: int):
         count = 0
         giou_val = 0
         conf_val = 0
@@ -367,7 +398,8 @@ class YOLOEstimator(YOLOBase):
                                                              input_size=self.input_size,
                                                              channels=self.channels,
                                                              training=False)
-        self.model_for_prediction = self.copy_model_weight(source_model=self.model, destination_model=self.model_for_prediction)
+        self.model_for_prediction = self.copy_model_weight(source_model=self.model,
+                                                           destination_model=self.model_for_prediction)
 
     def fit(self,
             train_data: YOLODatasetGenerator = None,
@@ -394,7 +426,8 @@ class YOLOEstimator(YOLOBase):
                                                       training=True)
 
                 if self.init_pretrained_weight:
-                    self.model = self.copy_model_weight(source_model=darknet_model, destination_model=self.model)
+                    self.model = self.copy_model_weight(source_model=darknet_model,
+                                                        destination_model=self.model)
                     del darknet_model
 
             steps_per_epoch = len(train_data)
@@ -439,5 +472,7 @@ class YOLOEstimator(YOLOBase):
 
             self.create_model_for_prediction()
 
-    def predict(self, x, **kwarg):
+    def predict(self,
+                x,
+                **kwarg):
         return self.model_for_prediction.predict(x, **kwarg)
